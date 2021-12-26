@@ -83,7 +83,7 @@ test "match.StringSwitchOriginal.benchmark" {
         };
 
         // copy of strings so that mem.eql has to compare strings byte by byte,
-        // rather than just coparing pointers.
+        // rather than just comparing pointers.
         pub const strings = [_][]const u8{
             "A" ** 1,
             "A" ** 2,
