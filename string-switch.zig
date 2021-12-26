@@ -58,6 +58,27 @@ pub fn StringSwitchMemEql(comptime strings: []const []const u8) type {
     };
 }
 
+pub fn StringSwitchComptimeMap(comptime strings: []const []const u8) type {
+    const Map = std.ComptimeStringMap(usize, blk: {
+        var entries: [strings.len]std.meta.Tuple(&.{ []const u8, usize }) = undefined;
+        inline for (strings) |s, i| {
+            entries[i] = .{ s, i };
+        }
+        break :blk entries;
+    });
+    return struct {
+        pub fn match(str: []const u8) usize {
+            return Map.get(str) orelse strings.len;
+        }
+
+        pub fn case(comptime str: []const u8) usize {
+            const i = match(str);
+            debug.assert(i < strings.len);
+            return i;
+        }
+    };
+}
+
 test "match.StringSwitchOriginal.benchmark" {
     try bench.benchmark(struct {
         pub const args = [_][]const u8{
@@ -202,6 +223,33 @@ test "match.StringSwitchOriginal.benchmark" {
             } else {
                 return 2241255;
             }
+        }
+
+        pub fn switch_StringSwitchComptimeMap(str: []const u8) usize {
+            @setEvalBranchQuota(100000);
+            const sw = StringSwitchComptimeMap(&strings);
+            return switch (sw.match(str)) {
+                sw.case("A" ** 1) => 21,
+                sw.case("A" ** 2) => 15,
+                sw.case("A" ** 4) => 31,
+                sw.case("A" ** 8) => 111,
+                sw.case("A" ** 16) => 400,
+                sw.case("A" ** 32) => 2,
+                sw.case("A" ** 64) => 100000,
+                sw.case("A" ** 128) => 12345,
+                sw.case("A" ** 256) => 1,
+                sw.case("A" ** 512) => 35,
+                sw.case("A" ** 1024) => 99999999,
+                sw.case("abcd" ** 8) => 4,
+                sw.case("abcd" ** 16) => 1512,
+                sw.case("abcd" ** 32) => 152222,
+                sw.case("abcd" ** 64) => 42566,
+                sw.case("abcd" ** 128) => 66477,
+                sw.case("abcd" ** 256) => 345377,
+                sw.case("abcd" ** 512) => 745745,
+                sw.case("abcd" ** 1024) => 3444,
+                else => 2241255,
+            };
         }
     });
 }
